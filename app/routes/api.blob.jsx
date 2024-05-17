@@ -24,11 +24,11 @@ export async function loader({ request }) {
       throw new Response("Page not Found", { status: 404 });
     }
 
-    // const userSession = await getSession();
-    // console.log(userSession.has("userId"));
-    // if (userSession.has("userId")) {
-    //   return redirect("/api/login");
-    // }
+    const userSession = await getSession();
+    console.log(userSession.has("userId"));
+    if (!userSession.has("userId")) {
+      return redirect("/api/login");
+    }
 
     const jwt = await fnJweDecrypt(jwe);
     const encSAS = await fnJwtVerify(jwt);
