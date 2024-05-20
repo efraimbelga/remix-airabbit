@@ -1,24 +1,29 @@
 import React from "react";
-import { json, redirect } from "@remix-run/node";
+import { createCookieSessionStorage, json, redirect } from "@remix-run/node";
 import { commitSession, getSession } from "../sessions";
 import logo from "../images/gsk-logo.png";
 
-export const loader = ({ request }) => {
-  const referrer1 = request.headers.get("Referer");
-  console.log({ referrer1 });
-  return json({ referrer1 });
+export const loader = async ({ request }) => {
+  const session = await getSession(request.headers.get("cookie"));
+  if (session.has("userId")) {
+    return redirect("/api/blob");
+  }
+  return true;
 };
-export const action = async ({ request }) => {
-  const session = await getSession(request.headers.get("Cookie"));
-  const referrer = request.headers.get("Referer");
-  console.log({ referrer });
-  session.set("userId", { name: "efraim", password: "xxx" });
 
-  return redirect("/api/blob?id=xxx", {
+export const action = async ({ request }) => {
+  const session = await getSession(request.headers.get("cookie"));
+  const jwe = session.data.jwe;
+  session.set("userId", true);
+  return redirect("/api/blob?id=" + jwe, {
     headers: {
       "Set-Cookie": await commitSession(session),
     },
   });
+
+  // const session = await storage.getSession();
+  // session.set("firstName", "Efraim");
+  // const commit = await storage.commitSession(session);
 };
 
 const login = () => {

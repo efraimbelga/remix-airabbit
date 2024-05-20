@@ -13,7 +13,7 @@ import {
   fnJwtVerify,
 } from "../lib/api.server";
 
-import { getSession } from "../sessions";
+import { commitSession, getSession } from "../sessions";
 import { redirect } from "@remix-run/node";
 
 export async function loader({ request }) {
@@ -24,10 +24,15 @@ export async function loader({ request }) {
       throw new Response("Page not Found", { status: 404 });
     }
 
-    const userSession = await getSession();
-    console.log(userSession.has("userId"));
-    if (!userSession.has("userId")) {
-      return redirect("/api/login");
+    const session = await getSession(request.headers.get("cookie"));
+    // console.log(session.data.userId);
+    if (!session.has("userId")) {
+      session.set("jwe", jwe);
+      return redirect("/api/login", {
+        headers: {
+          "Set-Cookie": await commitSession(session),
+        },
+      });
     }
 
     const jwt = await fnJweDecrypt(jwe);

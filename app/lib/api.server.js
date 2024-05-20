@@ -30,6 +30,24 @@ export const fnJwtVerify = async (jwt) => {
   return payload.sasURL;
 };
 
+export const createContainer = async () => {
+  const account = env.STORAGE_ACCOUNT;
+  const accountKey = env.ACCOUNT_KEY;
+  const containerName = "web";
+  const sharedKeyCredential = new StorageSharedKeyCredential(
+    account,
+    accountKey
+  );
+  const blobServiceClient = new BlobServiceClient(
+    `https://${account}.blob.core.windows.net`,
+    sharedKeyCredential
+  );
+
+  const containerClient = blobServiceClient.getContainerClient(containerName);
+  await containerClient.createIfNotExists();
+  return containerClient;
+};
+
 export const donwloadToTemp = async (encSAS) => {
   const sasURL = Buffer.from(encSAS, "base64").toString("utf-8");
   const uri = new URL(sasURL);
@@ -59,38 +77,11 @@ export const donwloadToTemp = async (encSAS) => {
   return tempPath;
 };
 
-export const createContainer = async () => {
-  const account = env.STORAGE_ACCOUNT;
-  const accountKey = env.ACCOUNT_KEY;
-  const containerName = "web";
-  const sharedKeyCredential = new StorageSharedKeyCredential(
-    account,
-    accountKey
-  );
-  const blobServiceClient = new BlobServiceClient(
-    `https://${account}.blob.core.windows.net`,
-    sharedKeyCredential
-  );
-
-  const containerClient = blobServiceClient.getContainerClient(containerName);
-  await containerClient.createIfNotExists();
-  return containerClient;
-};
-
 export const uploadBlob = async (tempPath) => {
   const containerClient = await createContainer();
   const blobName = path.basename(tempPath);
   const blockBlobClient = containerClient.getBlockBlobClient(blobName);
   await blockBlobClient.uploadFile(tempPath.replaceAll("\\", "/"));
-  deleteFile(tempPath);
+  fs.unlinkSync(tempPath);
   return blobName;
-};
-
-export const deleteFile = (filePath) => {
-  try {
-    const result = fs.unlinkSync(filePath);
-    return result;
-  } catch (err) {
-    console.error("Error deleting file:", err);
-  }
 };
